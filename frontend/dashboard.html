@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | BYD Türkiye KDS</title>
+    <meta name="description" content="BYD Türkiye EV Şarj İstasyonu Karar Destek Sistemi Dashboard">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body>
+    <!-- Skip Link for Keyboard Navigation -->
+    <a href="#main-content" class="skip-link">Ana içeriğe geç</a>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar" role="navigation" aria-label="Ana Navigasyon">
+            <div class="sidebar-header">
+                <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" class="sidebar-logo">
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item active">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="map.html" class="nav-item">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>Harita</span>
+                </a>
+                <a href="topsis.html" class="nav-item">
+                    <i class="fas fa-sort-amount-down"></i>
+                    <span>TOPSIS Analizi</span>
+                </a>
+                <a href="scenarios.html" class="nav-item">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Senaryolar</span>
+                </a>
+                <a href="forecast.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Tahminleme</span>
+                </a>
+                <a href="roi.html" class="nav-item">
+                    <i class="fas fa-calculator"></i>
+                    <span>ROI Analizi</span>
+                </a>
+                <a href="compare.html" class="nav-item">
+                    <i class="fas fa-columns"></i>
+                    <span>Karşılaştır</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div>
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role" id="userRole">Yönetici</div>
+                    </div>
+                </div>
+                <button class="btn btn-ghost btn-sm mt-2" onclick="ApiService.logout()" style="width:100%">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content" role="main">
+            <!-- Header -->
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">EV Şarj İstasyonu Yatırım Karar Destek Sistemi</p>
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn btn-secondary" id="btnRefresh">
+                        <i class="fas fa-sync-alt"></i> Yenile
+                    </button>
+                    <button class="btn btn-primary" id="btnRunTopsis">
+                        <i class="fas fa-play"></i> TOPSIS Çalıştır
+                    </button>
+                </div>
+            </header>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card fade-in">
+                    <div class="kpi-icon"><i class="fas fa-city"></i></div>
+                    <div class="kpi-value" id="kpiCities">30</div>
+                    <div class="kpi-label">Analiz Edilen Şehir</div>
+                </div>
+                <div class="kpi-card fade-in">
+                    <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
+                    <div class="kpi-value" id="kpiTopCity">-</div>
+                    <div class="kpi-label">1. Sıra Şehir</div>
+                </div>
+                <div class="kpi-card fade-in">
+                    <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+                    <div class="kpi-value" id="kpiAvgScore">-</div>
+                    <div class="kpi-label">Ortalama TOPSIS Skoru</div>
+                </div>
+                <div class="kpi-card fade-in">
+                    <div class="kpi-icon"><i class="fas fa-database"></i></div>
+                    <div class="kpi-value" id="kpiCompleteness">-</div>
+                    <div class="kpi-label">Veri Tamlığı</div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid-2 mb-4">
+                <!-- Top 5 Cities -->
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <h3 class="card-title">En Yüksek Skorlu 5 Şehir</h3>
+                        <span class="badge badge-success">TOPSIS</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartTop5"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weight Distribution -->
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <h3 class="card-title">Kriter Ağırlık Dağılımı</h3>
+                        <select class="form-select form-input" id="selectScenario"
+                            style="width:auto;padding:8px 32px 8px 12px;">
+                            <option value="balanced">Dengeli Strateji</option>
+                            <option value="aggressive">Agresif Büyüme</option>
+                            <option value="conservative">Temkinli Yaklaşım</option>
+                        </select>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartWeights"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Region Stats & Forecast -->
+            <div class="grid-2 mb-4">
+                <!-- Region Distribution -->
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <h3 class="card-title">Bölge Dağılımı</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartRegions"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EV Growth Forecast -->
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <h3 class="card-title">EV Büyüme Tahmini (Top 5)</h3>
+                        <span class="badge badge-info">12 Ay</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartForecast"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- City Rankings Table -->
+            <div class="card fade-in">
+                <div class="card-header">
+                    <h3 class="card-title">Şehir Sıralaması</h3>
+                    <a href="map.html" class="btn btn-ghost btn-sm">
+                        Haritada Göster <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table" id="rankingTable">
+                            <thead>
+                                <tr>
+                                    <th>Sıra</th>
+                                    <th>Şehir</th>
+                                    <th>Plaka</th>
+                                    <th>Bölge</th>
+                                    <th>TOPSIS Skoru</th>
+                                    <th>Öncelik</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rankingBody">
+                                <!-- Skeleton Loading -->
+                                <tr class="skeleton-row">
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:30px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:100px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:80px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:70px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:50px"></div>
+                                    </td>
+                                </tr>
+                                <tr class="skeleton-row">
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:30px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:120px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:90px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:70px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:50px"></div>
+                                    </td>
+                                </tr>
+                                <tr class="skeleton-row">
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:30px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:90px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:70px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:70px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:50px"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TOPSIS Modal -->
+    <div class="modal-overlay hidden" id="topsisModal">
+        <div class="modal"
+            style="background:var(--bg-card);border-radius:var(--radius-lg);padding:var(--spacing-xl);max-width:500px;width:90%;">
+            <h3 class="mb-3">TOPSIS Çalıştır</h3>
+            <form id="topsisForm">
+                <div class="form-group">
+                    <label class="form-label">Çalıştırma Adı</label>
+                    <input type="text" class="form-input" id="runName" value="Analiz - " required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Senaryo</label>
+                    <select class="form-input form-select" id="scenarioType">
+                        <option value="balanced">Dengeli Strateji</option>
+                        <option value="aggressive">Agresif Büyüme</option>
+                        <option value="conservative">Temkinli Yaklaşım</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button type="button" class="btn btn-secondary" onclick="closeTopsisModal()">İptal</button>
+                    <button type="submit" class="btn btn-primary">Çalıştır</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script>
+        // Auth check
+        if (!ApiService.isAuthenticated()) {
+            window.location.href = '/login.html';
+        }
+
+        // Load user info
+        const user = ApiService.getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.name || user.email;
+            document.getElementById('userRole').textContent = user.role === 'admin' ? 'Yönetici' : 'Analist';
+            document.getElementById('userAvatar').textContent = (user.name || user.email).charAt(0).toUpperCase();
+        }
+
+        // Chart instances
+        let chartTop5, chartWeights, chartRegions, chartForecast;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDashboardData();
+            initCharts();
+
+            // Set run name with date
+            document.getElementById('runName').value = `Analiz - ${new Date().toLocaleDateString('tr-TR')}`;
+        });
+
+        // Load data
+        async function loadDashboardData() {
+            try {
+                // Dashboard summary
+                const dashRes = await ApiService.getDashboard();
+                if (dashRes.success) {
+                    const data = dashRes.data;
+
+                    // KPIs
+                    document.getElementById('kpiCities').textContent = data.summary?.total_cities || 30;
+
+                    if (data.topCities && data.topCities.length > 0) {
+                        document.getElementById('kpiTopCity').textContent = data.topCities[0].name;
+                    }
+
+                    if (data.summary?.avg_score) {
+                        document.getElementById('kpiAvgScore').textContent =
+                            (parseFloat(data.summary.avg_score) * 100).toFixed(1) + '%';
+                    }
+
+                    if (data.summary?.avg_completeness) {
+                        document.getElementById('kpiCompleteness').textContent =
+                            parseFloat(data.summary.avg_completeness).toFixed(0) + '%';
+                    }
+
+                    // Update charts
+                    updateCharts(data);
+                }
+
+                // TOPSIS results for table
+                const topsisRes = await ApiService.getLatestTopsisResults();
+                if (topsisRes.success && topsisRes.data.results) {
+                    updateRankingTable(topsisRes.data.results);
+                } else {
+                    // No TOPSIS results yet, show cities
+                    const citiesRes = await ApiService.getCities();
+                    if (citiesRes.success) {
+                        updateRankingTableFromCities(citiesRes.data.cities);
+                    }
+                }
+
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+            }
+        }
+
+        // Initialize charts
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#A0AEC0' }
+                    }
+                }
+            };
+
+            // Top 5 Bar Chart
+            chartTop5 = new Chart(document.getElementById('chartTop5'), {
+                type: 'bar',
+                data: {
+                    labels: ['İstanbul', 'Ankara', 'İzmir', 'Bursa', 'Antalya'],
+                    datasets: [{
+                        label: 'TOPSIS Skoru',
+                        data: [0.85, 0.78, 0.72, 0.68, 0.65],
+                        backgroundColor: 'rgba(200, 16, 46, 0.8)',
+                        borderColor: '#C8102E',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 1,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#A0AEC0' }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#A0AEC0' }
+                        }
+                    }
+                }
+            });
+
+            // Weights Pie Chart
+            chartWeights = new Chart(document.getElementById('chartWeights'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Nüfus', 'EV Sayısı', 'Gelir', 'Altyapı', 'Rekabet', 'Diğer'],
+                    datasets: [{
+                        data: [15, 20, 15, 12, 10, 28],
+                        backgroundColor: [
+                            '#C8102E', '#E8314A', '#F56565', '#ECC94B', '#48BB78', '#4299E1'
+                        ]
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    cutout: '60%'
+                }
+            });
+
+            // Regions Pie Chart
+            chartRegions = new Chart(document.getElementById('chartRegions'), {
+                type: 'pie',
+                data: {
+                    labels: ['Marmara', 'İç Anadolu', 'Ege', 'Akdeniz', 'Karadeniz', 'Diğer'],
+                    datasets: [{
+                        data: [8, 5, 4, 5, 3, 5],
+                        backgroundColor: [
+                            '#C8102E', '#4299E1', '#48BB78', '#ECC94B', '#9F7AEA', '#ED8936'
+                        ]
+                    }]
+                },
+                options: chartOptions
+            });
+
+            // Forecast Line Chart
+            chartForecast = new Chart(document.getElementById('chartForecast'), {
+                type: 'line',
+                data: {
+                    labels: ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'],
+                    datasets: [
+                        {
+                            label: 'İstanbul',
+                            data: [45000, 46500, 48000, 50000, 52000, 54500, 57000, 60000, 63000, 66500, 70000, 74000],
+                            borderColor: '#C8102E',
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'Ankara',
+                            data: [22000, 22800, 23600, 24500, 25400, 26400, 27400, 28500, 29600, 30800, 32000, 33300],
+                            borderColor: '#4299E1',
+                            tension: 0.4,
+                            fill: false
+                        },
+                        {
+                            label: 'İzmir',
+                            data: [18000, 18600, 19200, 19900, 20600, 21400, 22200, 23000, 23900, 24800, 25800, 26800],
+                            borderColor: '#48BB78',
+                            tension: 0.4,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#A0AEC0' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#A0AEC0' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts with data
+        function updateCharts(data) {
+            if (data.topCities && data.topCities.length > 0 && chartTop5) {
+                chartTop5.data.labels = data.topCities.map(c => c.name);
+                chartTop5.data.datasets[0].data = data.topCities.map(c => parseFloat(c.last_topsis_score) || 0);
+                chartTop5.update();
+            }
+
+            if (data.regionStats && chartRegions) {
+                chartRegions.data.labels = data.regionStats.map(r => r.region);
+                chartRegions.data.datasets[0].data = data.regionStats.map(r => parseInt(r.city_count));
+                chartRegions.update();
+            }
+        }
+
+        // Update ranking table
+        function updateRankingTable(results) {
+            const tbody = document.getElementById('rankingBody');
+
+            if (!results || results.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Henüz TOPSIS analizi yapılmamış</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = results.slice(0, 10).map(r => `
+                <tr>
+                    <td><strong>#${r.rank}</strong></td>
+                    <td>${r.city_name}</td>
+                    <td>${r.plate_code}</td>
+                    <td>${r.region_name || '-'}</td>
+                    <td><strong>${(r.score * 100).toFixed(1)}%</strong></td>
+                    <td>
+                        <span class="badge priority-${r.investment_priority}">
+                            ${r.investment_priority === 'high' ? 'Yüksek' : r.investment_priority === 'medium' ? 'Orta' : 'Düşük'}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="city.html?id=${r.city_id}" class="btn btn-ghost btn-sm">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Update table from cities (when no TOPSIS)
+        function updateRankingTableFromCities(cities) {
+            const tbody = document.getElementById('rankingBody');
+
+            tbody.innerHTML = cities.slice(0, 10).map((c, i) => `
+                <tr>
+                    <td><strong>#${c.last_topsis_rank || (i + 1)}</strong></td>
+                    <td>${c.name}</td>
+                    <td>${c.plate_code}</td>
+                    <td>${c.region_name || '-'}</td>
+                    <td><strong>${c.last_topsis_score ? (c.last_topsis_score * 100).toFixed(1) + '%' : '-'}</strong></td>
+                    <td>
+                        <span class="badge badge-info">Bekliyor</span>
+                    </td>
+                    <td>
+                        <a href="city.html?id=${c.id}" class="btn btn-ghost btn-sm">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // TOPSIS Modal
+        document.getElementById('btnRunTopsis').addEventListener('click', () => {
+            document.getElementById('topsisModal').classList.remove('hidden');
+        });
+
+        function closeTopsisModal() {
+            document.getElementById('topsisModal').classList.add('hidden');
+        }
+
+        document.getElementById('topsisForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const runName = document.getElementById('runName').value;
+            const scenarioType = document.getElementById('scenarioType').value;
+
+            try {
+                const result = await ApiService.runTopsis({ runName, scenarioType });
+
+                if (result.success) {
+                    Toast.success('TOPSIS analizi başarıyla tamamlandı!', 'Analiz Tamamlandı');
+                    closeTopsisModal();
+                    await loadDashboardData();
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                Toast.error(error.message);
+            }
+        });
+
+        // Refresh button
+        document.getElementById('btnRefresh').addEventListener('click', loadDashboardData);
+    </script>
+</body>
+
+</html>

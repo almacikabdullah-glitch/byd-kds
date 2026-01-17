@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şehir Karşılaştırma | BYD Türkiye KDS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <style>
+        .compare-header {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .city-select-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .city-select-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .compare-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            border: 2px solid var(--border-color);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .compare-card.highlight {
+            border-color: var(--byd-red);
+            box-shadow: 0 0 20px rgba(200, 16, 46, 0.2);
+        }
+
+        .compare-card-header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-hover) 100%);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compare-card-header.winner {
+            background: linear-gradient(135deg, rgba(200, 16, 46, 0.2) 0%, rgba(200, 16, 46, 0.1) 100%);
+        }
+
+        .city-rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--gradient-red);
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .city-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 4px;
+        }
+
+        .city-meta {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .compare-card-body {
+            padding: 20px;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .metric-value.best {
+            color: var(--success);
+        }
+
+        .metric-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            background: var(--gradient-red);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .score-display {
+            text-align: center;
+            padding: 24px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            margin-top: 16px;
+        }
+
+        .score-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--byd-red);
+        }
+
+        .score-label {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .empty-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            color: var(--text-muted);
+        }
+
+        .empty-slot i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .winner-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--success);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Skip Link for Keyboard Navigation -->
+    <a href="#main-content" class="skip-link">Ana içeriğe geç</a>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" role="navigation" aria-label="Ana Navigasyon">
+            <div class="sidebar-header">
+                <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+                <a href="map.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Harita</span></a>
+                <a href="topsis.html" class="nav-item"><i class="fas fa-sort-amount-down"></i><span>TOPSIS
+                        Analizi</span></a>
+                <a href="scenarios.html" class="nav-item"><i class="fas fa-sliders-h"></i><span>Senaryolar</span></a>
+                <a href="forecast.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Tahminleme</span></a>
+                <a href="roi.html" class="nav-item"><i class="fas fa-calculator"></i><span>ROI Analizi</span></a>
+                <a href="compare.html" class="nav-item active"><i
+                        class="fas fa-columns"></i><span>Karşılaştır</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-ghost btn-sm" onclick="ApiService.logout()" style="width:100%">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content" role="main">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Şehir Karşılaştırma</h1>
+                    <p class="page-subtitle">Şehirleri yan yana karşılaştırarak karar verin</p>
+                </div>
+            </header>
+
+            <!-- City Selection -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="compare-header">
+                        <div class="city-select-group">
+                            <label>1. Şehir</label>
+                            <select class="form-input form-select" id="city1">
+                                <option value="">Şehir seçin...</option>
+                            </select>
+                        </div>
+                        <div class="city-select-group">
+                            <label>2. Şehir</label>
+                            <select class="form-input form-select" id="city2">
+                                <option value="">Şehir seçin...</option>
+                            </select>
+                        </div>
+                        <div class="city-select-group">
+                            <label>3. Şehir (Opsiyonel)</label>
+                            <select class="form-input form-select" id="city3">
+                                <option value="">Şehir seçin...</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="btnCompare">
+                            <i class="fas fa-balance-scale"></i> Karşılaştır
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Results -->
+            <div class="compare-grid" id="compareResults">
+                <div class="compare-card">
+                    <div class="empty-slot">
+                        <i class="fas fa-city"></i>
+                        <p>Karşılaştırmak için şehir seçin</p>
+                    </div>
+                </div>
+                <div class="compare-card">
+                    <div class="empty-slot">
+                        <i class="fas fa-city"></i>
+                        <p>Karşılaştırmak için şehir seçin</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Radar Chart -->
+            <div class="card mt-4" id="chartCard" style="display:none;">
+                <div class="card-header">
+                    <h3 class="card-title">Kriter Karşılaştırması</h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container-lg">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script>
+        if (!ApiService.isAuthenticated()) window.location.href = '/login.html';
+
+        let allCities = [];
+        let radarChart = null;
+        const colors = ['#C8102E', '#4299E1', '#48BB78'];
+
+        // Load cities for dropdowns
+        async function loadCities() {
+            try {
+                const res = await ApiService.getLatestTopsisResults();
+                if (res.success && res.data.results) {
+                    allCities = res.data.results;
+                    populateDropdowns();
+                }
+            } catch (e) {
+                console.error('Load cities error:', e);
+            }
+        }
+
+        function populateDropdowns() {
+            const options = allCities.map(c =>
+                `<option value="${c.city_id}">${c.city_name} (${c.plate_code}) - #${c.rank}</option>`
+            ).join('');
+
+            const defaultOption = '<option value="">Şehir seçin...</option>';
+            document.getElementById('city1').innerHTML = defaultOption + options;
+            document.getElementById('city2').innerHTML = defaultOption + options;
+            document.getElementById('city3').innerHTML = defaultOption + options;
+        }
+
+        // Compare cities
+        document.getElementById('btnCompare').addEventListener('click', async () => {
+            const city1Id = document.getElementById('city1').value;
+            const city2Id = document.getElementById('city2').value;
+            const city3Id = document.getElementById('city3').value;
+
+            if (!city1Id || !city2Id) {
+                Toast.warning('En az 2 şehir seçmelisiniz');
+                return;
+            }
+
+            const selectedIds = [city1Id, city2Id];
+            if (city3Id) selectedIds.push(city3Id);
+
+            try {
+                const cityDataPromises = selectedIds.map(id => ApiService.getCity(id));
+                const cityResponses = await Promise.all(cityDataPromises);
+
+                const cityData = cityResponses
+                    .filter(r => r.success)
+                    .map(r => ({
+                        ...r.data.city,
+                        indicators: r.data.indicators
+                    }));
+
+                if (cityData.length < 2) {
+                    Toast.error('Şehir verileri alınamadı');
+                    return;
+                }
+
+                renderComparison(cityData);
+                renderRadarChart(cityData);
+
+            } catch (e) {
+                console.error('Compare error:', e);
+                Toast.error('Karşılaştırma yapılamadı');
+            }
+        });
+
+        function renderComparison(cities) {
+            // Find the winner (highest TOPSIS score)
+            const winner = cities.reduce((best, city) =>
+                (city.last_topsis_score || 0) > (best.last_topsis_score || 0) ? city : best
+            );
+
+            const html = cities.map((city, index) => {
+                const isWinner = city.id === winner.id;
+                const score = city.last_topsis_score || 0;
+                const rank = city.last_topsis_rank || '-';
+
+                // Get indicator values
+                const population = city.population || 0;
+                const evCount = city.indicators?.find(i => i.code === 'EV_COUNT')?.value || 0;
+                const stations = city.indicators?.find(i => i.code === 'CHARGING_STATIONS')?.value || 0;
+                const income = city.indicators?.find(i => i.code === 'AVG_INCOME')?.value || 0;
+
+                return `
+                    <div class="compare-card ${isWinner ? 'highlight' : ''}">
+                        <div class="compare-card-header ${isWinner ? 'winner' : ''}">
+                            <div class="city-rank-badge" style="background: ${colors[index]}">#${rank}</div>
+                            <h2 class="city-name">${city.name}</h2>
+                            <p class="city-meta">${city.plate_code} • ${city.region_name}</p>
+                            ${isWinner ? '<span class="winner-badge"><i class="fas fa-trophy"></i> En Yüksek Skor</span>' : ''}
+                        </div>
+                        <div class="compare-card-body">
+                            <div class="metric-row">
+                                <span class="metric-label">Nüfus</span>
+                                <span class="metric-value">${formatNumber(population)}</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Elektrikli Araç</span>
+                                <span class="metric-value">${formatNumber(Math.round(evCount))}</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Şarj İstasyonu</span>
+                                <span class="metric-value">${Math.round(stations)}</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Ort. Gelir</span>
+                                <span class="metric-value">${formatNumber(Math.round(income))} ₺</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-label">Büyükşehir</span>
+                                <span class="metric-value">${city.is_metropolitan ? '✓ Evet' : '✗ Hayır'}</span>
+                            </div>
+                            
+                            <div class="score-display">
+                                <div class="score-label">TOPSIS Skoru</div>
+                                <div class="score-value">${(score * 100).toFixed(1)}%</div>
+                                <div class="metric-bar">
+                                    <div class="metric-bar-fill" style="width: ${score * 100}%; background: ${colors[index]}"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('compareResults').innerHTML = html;
+        }
+
+        function renderRadarChart(cities) {
+            document.getElementById('chartCard').style.display = 'block';
+
+            const indicatorLabels = ['Nüfus', 'EV Sayısı', 'Şarj İst.', 'Gelir', 'Altyapı'];
+
+            const datasets = cities.map((city, index) => {
+                // Normalize values to 0-100 for comparison
+                const population = Math.min(100, (city.population || 0) / 160000);
+                const evCount = Math.min(100, ((city.indicators?.find(i => i.code === 'EV_COUNT')?.value || 0) / 500));
+                const stations = Math.min(100, ((city.indicators?.find(i => i.code === 'CHARGING_STATIONS')?.value || 0) / 5));
+                const income = Math.min(100, ((city.indicators?.find(i => i.code === 'AVG_INCOME')?.value || 0) / 1000));
+                const infra = Math.min(100, ((city.indicators?.find(i => i.code === 'GRID_RELIABILITY')?.value || 0.5) * 100));
+
+                return {
+                    label: city.name,
+                    data: [population, evCount, stations, income, infra],
+                    backgroundColor: colors[index] + '30',
+                    borderColor: colors[index],
+                    pointBackgroundColor: colors[index],
+                    pointBorderColor: '#fff',
+                    borderWidth: 2
+                };
+            });
+
+            if (radarChart) {
+                radarChart.data.datasets = datasets;
+                radarChart.update();
+            } else {
+                radarChart = new Chart(document.getElementById('radarChart'), {
+                    type: 'radar',
+                    data: {
+                        labels: indicatorLabels,
+                        datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100,
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                angleLines: { color: 'rgba(255,255,255,0.1)' },
+                                pointLabels: { color: '#A0AEC0', font: { size: 12 } },
+                                ticks: { display: false }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#A0AEC0', padding: 20 }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function formatNumber(num) {
+            if (!num) return '-';
+            return new Intl.NumberFormat('tr-TR').format(num);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadCities);
+    </script>
+</body>
+
+</html>

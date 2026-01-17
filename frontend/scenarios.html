@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senaryolar | BYD Türkiye KDS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+                <a href="map.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Harita</span></a>
+                <a href="topsis.html" class="nav-item"><i class="fas fa-sort-amount-down"></i><span>TOPSIS
+                        Analizi</span></a>
+                <a href="scenarios.html" class="nav-item active"><i
+                        class="fas fa-sliders-h"></i><span>Senaryolar</span></a>
+                <a href="forecast.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Tahminleme</span></a>
+                <a href="roi.html" class="nav-item"><i class="fas fa-calculator"></i><span>ROI Analizi</span></a>
+                <a href="compare.html" class="nav-item"><i class="fas fa-columns"></i><span>Karşılaştır</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-ghost btn-sm" onclick="ApiService.logout()" style="width:100%">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Senaryo Yönetimi</h1>
+                    <p class="page-subtitle">TOPSIS kriter ağırlıklarını yönetin</p>
+                </div>
+                <button class="btn btn-primary" id="btnNewScenario">
+                    <i class="fas fa-plus"></i> Yeni Senaryo
+                </button>
+            </header>
+
+            <div class="grid-2 mb-4">
+                <!-- Preset List -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Kayıtlı Senaryolar</h3>
+                    </div>
+                    <div class="card-body" id="scenarioList">
+                        <!-- Skeleton Loading -->
+                        <div class="skeleton-list-item">
+                            <div class="skeleton skeleton-circle skeleton-avatar"></div>
+                            <div class="skeleton-content">
+                                <div class="skeleton skeleton-title"></div>
+                                <div class="skeleton skeleton-subtitle"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-list-item">
+                            <div class="skeleton skeleton-circle skeleton-avatar"></div>
+                            <div class="skeleton-content">
+                                <div class="skeleton skeleton-title"></div>
+                                <div class="skeleton skeleton-subtitle"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-list-item">
+                            <div class="skeleton skeleton-circle skeleton-avatar"></div>
+                            <div class="skeleton-content">
+                                <div class="skeleton skeleton-title"></div>
+                                <div class="skeleton skeleton-subtitle"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weight Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Ağırlık Dağılımı</h3>
+                        <span class="badge badge-info" id="selectedScenario">-</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartWeights"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weight Editor -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Ağırlık Düzenleyici</h3>
+                </div>
+                <div class="card-body">
+                    <div id="weightSliders" class="grid-3" style="gap:20px;"></div>
+                    <div class="mt-3 flex justify-between items-center">
+                        <div>
+                            <strong>Toplam:</strong> <span id="totalWeight">0</span>%
+                            <span id="weightStatus" class="badge"></span>
+                        </div>
+                        <button class="btn btn-primary" id="btnSaveWeights">Senaryoyu Kaydet</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- New Scenario Modal -->
+    <div class="modal-overlay hidden" id="scenarioModal">
+        <div class="modal"
+            style="background:var(--bg-card);border-radius:var(--radius-lg);padding:var(--spacing-xl);max-width:500px;width:90%;">
+            <h3 class="mb-3">Yeni Senaryo Oluştur</h3>
+            <form id="scenarioForm">
+                <div class="form-group">
+                    <label class="form-label">Senaryo Adı</label>
+                    <input type="text" class="form-input" id="scenarioName" required placeholder="Örn: Agresif Büyüme">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Senaryo Tipi</label>
+                    <select class="form-input form-select" id="scenarioType">
+                        <option value="custom">Özel</option>
+                        <option value="balanced">Dengeli</option>
+                        <option value="aggressive">Agresif</option>
+                        <option value="conservative">Temkinli</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Açıklama</label>
+                    <textarea class="form-input" id="scenarioDesc" rows="2"
+                        placeholder="Bu senaryo hakkında kısa açıklama..."></textarea>
+                </div>
+                <p class="text-muted" style="font-size:12px;">
+                    <i class="fas fa-info-circle"></i> Senaryo oluşturulduktan sonra ağırlıkları düzenleyebilirsiniz.
+                </p>
+                <div class="flex gap-2 mt-3">
+                    <button type="button" class="btn btn-secondary" onclick="closeScenarioModal()">İptal</button>
+                    <button type="submit" class="btn btn-primary">Oluştur</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+    </style>
+
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script>
+        if (!ApiService.isAuthenticated()) window.location.href = '/login.html';
+
+        let chartWeights;
+        let currentWeights = {};
+        const indicators = [
+            { code: 'POP_DENSITY', name: 'Nüfus Yoğunluğu' },
+            { code: 'EV_COUNT', name: 'EV Sayısı' },
+            { code: 'EV_DENSITY', name: 'EV Yoğunluğu' },
+            { code: 'ENERGY_CAPACITY', name: 'Enerji Kapasitesi' },
+            { code: 'CHARGING_STATIONS', name: 'Mevcut Şarj İst.' },
+            { code: 'AVG_INCOME', name: 'Ortalama Gelir' },
+            { code: 'TOURISM_INDEX', name: 'Turizm Endeksi' },
+            { code: 'HIGHWAY_ACCESS', name: 'Otoyol Erişimi' },
+            { code: 'ELECTRICITY_PRICE', name: 'Elektrik Fiyatı' },
+            { code: 'GRID_RELIABILITY', name: 'Şebeke Güvenilirliği' }
+        ];
+
+        async function loadScenarios() {
+            try {
+                const res = await ApiService.getScenarioPresets();
+                if (res.success) {
+                    document.getElementById('scenarioList').innerHTML = res.data.map(s => `
+                        <div class="city-list-item" onclick="selectScenario(${JSON.stringify(s).replace(/"/g, '&quot;')})">
+                            <div class="city-rank ${s.is_system ? '' : 'medium'}">${s.is_system ? '🔒' : '📝'}</div>
+                            <div class="city-info">
+                                <h4>${s.name}</h4>
+                                <p>${s.scenario_type} ${s.is_system ? '(Sistem)' : ''}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function selectScenario(scenario) {
+            document.getElementById('selectedScenario').textContent = scenario.name;
+            currentWeights = scenario.weights || {};
+            updateChart();
+            updateSliders();
+        }
+
+        function updateChart() {
+            const labels = indicators.map(i => i.name);
+            const data = indicators.map(i => (currentWeights[i.code] || 0) * 100);
+
+            if (!chartWeights) {
+                chartWeights = new Chart(document.getElementById('chartWeights'), {
+                    type: 'radar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Ağırlık %',
+                            data,
+                            backgroundColor: 'rgba(200, 16, 46, 0.2)',
+                            borderColor: '#C8102E',
+                            pointBackgroundColor: '#C8102E'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 30,
+                                grid: { color: 'rgba(255,255,255,0.1)' },
+                                angleLines: { color: 'rgba(255,255,255,0.1)' },
+                                pointLabels: { color: '#A0AEC0', font: { size: 10 } },
+                                ticks: { display: false }
+                            }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            } else {
+                chartWeights.data.datasets[0].data = data;
+                chartWeights.update();
+            }
+        }
+
+        function updateSliders() {
+            document.getElementById('weightSliders').innerHTML = indicators.map(i => `
+                <div>
+                    <label class="form-label">${i.name}</label>
+                    <input type="range" min="0" max="30" step="1" value="${(currentWeights[i.code] || 0) * 100}" 
+                           class="form-input" style="width:100%" data-code="${i.code}" oninput="onSliderChange(this)">
+                    <div class="text-center text-muted">${((currentWeights[i.code] || 0) * 100).toFixed(0)}%</div>
+                </div>
+            `).join('');
+            calculateTotal();
+        }
+
+        function onSliderChange(el) {
+            const code = el.dataset.code;
+            const value = parseInt(el.value) / 100;
+            currentWeights[code] = value;
+            el.nextElementSibling.textContent = el.value + '%';
+            updateChart();
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            const total = Object.values(currentWeights).reduce((a, b) => a + b, 0) * 100;
+            document.getElementById('totalWeight').textContent = total.toFixed(0);
+            const status = document.getElementById('weightStatus');
+            if (Math.abs(total - 100) < 1) {
+                status.className = 'badge badge-success';
+                status.textContent = '✓ Geçerli';
+            } else {
+                status.className = 'badge badge-warning';
+                status.textContent = 'Toplam 100 olmalı';
+            }
+        }
+
+        // Initialize with balanced
+        currentWeights = {
+            POP_DENSITY: 0.10, EV_COUNT: 0.15, EV_DENSITY: 0.15, ENERGY_CAPACITY: 0.10,
+            CHARGING_STATIONS: 0.10, AVG_INCOME: 0.12, TOURISM_INDEX: 0.08,
+            HIGHWAY_ACCESS: 0.10, ELECTRICITY_PRICE: 0.05, GRID_RELIABILITY: 0.05
+        };
+
+        // Modal functions
+        document.getElementById('btnNewScenario').addEventListener('click', () => {
+            document.getElementById('scenarioModal').classList.remove('hidden');
+        });
+
+        function closeScenarioModal() {
+            document.getElementById('scenarioModal').classList.add('hidden');
+            document.getElementById('scenarioForm').reset();
+        }
+
+        // Create new scenario
+        document.getElementById('scenarioForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('scenarioName').value;
+            const type = document.getElementById('scenarioType').value;
+            const desc = document.getElementById('scenarioDesc').value;
+
+            try {
+                const res = await ApiService.createScenarioPreset({
+                    name: name,
+                    scenarioType: type,
+                    description: desc,
+                    weights: currentWeights
+                });
+
+                if (res.success) {
+                    Toast.success('Senaryo başarıyla oluşturuldu!', 'Başarılı');
+                    closeScenarioModal();
+                    loadScenarios();
+                } else {
+                    throw new Error(res.error);
+                }
+            } catch (err) {
+                Toast.error(err.message);
+            }
+        });
+
+        // Save current weights to a scenario
+        document.getElementById('btnSaveWeights').addEventListener('click', () => {
+            const total = Object.values(currentWeights).reduce((a, b) => a + b, 0) * 100;
+            if (Math.abs(total - 100) >= 1) {
+                Toast.warning('Önce ağırlıkların toplamını 100 yapmalısınız!');
+                return;
+            }
+            document.getElementById('scenarioModal').classList.remove('hidden');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadScenarios();
+            updateChart();
+            updateSliders();
+        });
+    </script>
+    <style>
+        .city-list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .city-list-item:hover {
+            border-color: var(--byd-red);
+        }
+
+        .city-rank {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .city-rank.medium {
+            background: var(--warning);
+        }
+
+        .city-info h4 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .city-info p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+    </style>
+</body>
+
+</html>

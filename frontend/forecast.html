@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tahminleme | BYD Türkiye KDS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+                <a href="map.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Harita</span></a>
+                <a href="topsis.html" class="nav-item"><i class="fas fa-sort-amount-down"></i><span>TOPSIS
+                        Analizi</span></a>
+                <a href="scenarios.html" class="nav-item"><i class="fas fa-sliders-h"></i><span>Senaryolar</span></a>
+                <a href="forecast.html" class="nav-item active"><i
+                        class="fas fa-chart-line"></i><span>Tahminleme</span></a>
+                <a href="roi.html" class="nav-item"><i class="fas fa-calculator"></i><span>ROI Analizi</span></a>
+                <a href="compare.html" class="nav-item"><i class="fas fa-columns"></i><span>Karşılaştır</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-ghost btn-sm" onclick="ApiService.logout()" style="width:100%">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Tahminleme</h1>
+                    <p class="page-subtitle">EV büyümesi ve şarj talebi projeksiyonları</p>
+                </div>
+                <div class="flex gap-2">
+                    <select class="form-input form-select" id="forecastTarget" style="width:auto;">
+                        <option value="EV_COUNT">EV Sayısı</option>
+                        <option value="CHARGING_STATIONS">Şarj İstasyonu</option>
+                    </select>
+                    <select class="form-input form-select" id="forecastModel" style="width:auto;">
+                        <option value="exponential">Exponential</option>
+                        <option value="linear">Linear</option>
+                    </select>
+                    <button class="btn btn-primary" id="btnRunForecast">
+                        <i class="fas fa-chart-line"></i> Tahmin Çalıştır
+                    </button>
+                </div>
+            </header>
+
+            <!-- Summary Cards -->
+            <div class="kpi-grid mb-4">
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-car"></i></div>
+                    <div class="kpi-value" id="kpiCurrentEV">-</div>
+                    <div class="kpi-label">Mevcut Toplam EV</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-arrow-up"></i></div>
+                    <div class="kpi-value" id="kpi12MonthGrowth">-</div>
+                    <div class="kpi-label">12 Ay Sonra (Tahmini)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+                    <div class="kpi-value" id="kpiGrowthRate">-</div>
+                    <div class="kpi-label">Yıllık Büyüme Oranı</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-city"></i></div>
+                    <div class="kpi-value" id="kpiForecastCities">30</div>
+                    <div class="kpi-label">Tahmin Edilen Şehir</div>
+                </div>
+            </div>
+
+            <!-- Forecast Chart -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">Top 5 Şehir - 12 Aylık Projeksiyon</h3>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container-lg">
+                        <canvas id="chartForecast"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- City Forecasts Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Şehir Bazlı Tahminler</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Şehir</th>
+                                    <th>Plaka</th>
+                                    <th>Mevcut</th>
+                                    <th>6 Ay</th>
+                                    <th>12 Ay</th>
+                                    <th>Büyüme %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="forecastTable">
+                                <tr class="skeleton-row">
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:90px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:50px"></div>
+                                    </td>
+                                </tr>
+                                <tr class="skeleton-row">
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:80px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:50px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:55px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:50px"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script>
+        if (!ApiService.isAuthenticated()) window.location.href = '/login.html';
+
+        let chartForecast;
+        const colors = ['#C8102E', '#4299E1', '#48BB78', '#ECC94B', '#9F7AEA'];
+
+        async function runForecast() {
+            try {
+                const target = document.getElementById('forecastTarget').value;
+                const model = document.getElementById('forecastModel').value;
+
+                const res = await ApiService.runForecast({
+                    targetCode: target,
+                    modelType: model,
+                    horizonMonths: 12
+                });
+
+                if (res.success) {
+                    updateKPIs(res.data);
+                    updateChart(res.data.results.slice(0, 5));
+                    updateTable(res.data.results);
+                }
+            } catch (e) {
+                console.error('Forecast error:', e);
+            }
+        }
+
+        function updateKPIs(data) {
+            const totalCurrent = data.results.reduce((sum, r) => {
+                const first = r.forecasts[0]?.yhat || 5000;
+                return sum + first / 1.03; // back-calculate
+            }, 0);
+
+            const total12Month = data.results.reduce((sum, r) => {
+                const last = r.forecasts[r.forecasts.length - 1]?.yhat || 5000;
+                return sum + last;
+            }, 0);
+
+            document.getElementById('kpiCurrentEV').textContent = formatNumber(Math.round(totalCurrent));
+            document.getElementById('kpi12MonthGrowth').textContent = formatNumber(Math.round(total12Month));
+            document.getElementById('kpiGrowthRate').textContent = ((total12Month / totalCurrent - 1) * 100).toFixed(1) + '%';
+            document.getElementById('kpiForecastCities').textContent = data.totalCities;
+        }
+
+        function updateChart(topCities) {
+            const labels = topCities[0]?.forecasts.map(f => {
+                const d = new Date(f.date);
+                return d.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' });
+            }) || [];
+
+            const datasets = topCities.map((city, i) => ({
+                label: city.cityName,
+                data: city.forecasts.map(f => f.yhat),
+                borderColor: colors[i],
+                backgroundColor: colors[i] + '20',
+                fill: false,
+                tension: 0.4
+            }));
+
+            if (!chartForecast) {
+                chartForecast = new Chart(document.getElementById('chartForecast'), {
+                    type: 'line',
+                    data: { labels, datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#A0AEC0' } },
+                            y: { grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#A0AEC0' } }
+                        },
+                        plugins: { legend: { labels: { color: '#A0AEC0' } } }
+                    }
+                });
+            } else {
+                chartForecast.data.labels = labels;
+                chartForecast.data.datasets = datasets;
+                chartForecast.update();
+            }
+        }
+
+        function updateTable(results) {
+            document.getElementById('forecastTable').innerHTML = results.slice(0, 15).map(r => {
+                const current = r.forecasts[0]?.yhat / 1.03 || 0;
+                const month6 = r.forecasts[5]?.yhat || 0;
+                const month12 = r.forecasts[11]?.yhat || 0;
+                const growth = ((month12 / current) - 1) * 100;
+
+                return `
+                    <tr>
+                        <td>${r.cityName}</td>
+                        <td>${r.plateCode}</td>
+                        <td>${formatNumber(Math.round(current))}</td>
+                        <td>${formatNumber(Math.round(month6))}</td>
+                        <td><strong>${formatNumber(Math.round(month12))}</strong></td>
+                        <td><span class="badge badge-success">+${growth.toFixed(1)}%</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function formatNumber(num) {
+            return new Intl.NumberFormat('tr-TR').format(num);
+        }
+
+        document.getElementById('btnRunForecast').addEventListener('click', runForecast);
+        document.addEventListener('DOMContentLoaded', runForecast);
+    </script>
+</body>
+
+</html>

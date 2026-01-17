@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şehir Detay | BYD Türkiye KDS</title>
+    <meta name="description" content="BYD Türkiye EV Şarj İstasyonu - Şehir Detay Analizi">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" class="sidebar-logo">
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="map.html" class="nav-item">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>Harita</span>
+                </a>
+                <a href="topsis.html" class="nav-item">
+                    <i class="fas fa-sort-amount-down"></i>
+                    <span>TOPSIS Analizi</span>
+                </a>
+                <a href="scenarios.html" class="nav-item">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Senaryolar</span>
+                </a>
+                <a href="forecast.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Tahminleme</span>
+                </a>
+                <a href="roi.html" class="nav-item"><i class="fas fa-calculator"></i><span>ROI Analizi</span></a>
+                <a href="compare.html" class="nav-item"><i class="fas fa-columns"></i><span>Karşılaştır</span></a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn btn-ghost btn-sm" onclick="ApiService.logout()" style="width:100%">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="page-header">
+                <div>
+                    <a href="map.html" class="text-muted" style="font-size:0.875rem;">
+                        <i class="fas fa-arrow-left"></i> Haritaya Dön
+                    </a>
+                    <h1 class="page-title mt-1" id="cityName">Yükleniyor...</h1>
+                    <p class="page-subtitle" id="cityRegion"></p>
+                </div>
+                <div class="flex gap-2">
+                    <span class="badge" id="priorityBadge">-</span>
+                    <span class="badge badge-info" id="rankBadge">Sıra: -</span>
+                </div>
+            </header>
+
+            <!-- KPI Cards -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-users"></i></div>
+                    <div class="kpi-value" id="kpiPopulation">-</div>
+                    <div class="kpi-label">Nüfus</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-car"></i></div>
+                    <div class="kpi-value" id="kpiEV">-</div>
+                    <div class="kpi-label">Elektrikli Araç</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-charging-station"></i></div>
+                    <div class="kpi-value" id="kpiStations">-</div>
+                    <div class="kpi-label">Mevcut Şarj İst.</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-star"></i></div>
+                    <div class="kpi-value" id="kpiScore">-</div>
+                    <div class="kpi-label">TOPSIS Skoru</div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid-2 mb-4">
+                <!-- Indicator Values -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Kriter Değerleri</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartIndicators"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Forecast -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">EV Büyüme Tahmini</h3>
+                        <span class="badge badge-info">12 Ay</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chartForecast"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Districts & ROI -->
+            <div class="grid-2 mb-4">
+                <!-- Districts -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">İlçeler</h3>
+                        <span class="badge badge-info" id="districtCount">0 ilçe</span>
+                    </div>
+                    <div class="card-body" style="max-height:300px;overflow-y:auto;">
+                        <table class="table" id="districtsTable">
+                            <thead>
+                                <tr>
+                                    <th>İlçe</th>
+                                    <th>Nüfus</th>
+                                    <th>Merkez</th>
+                                </tr>
+                            </thead>
+                            <tbody id="districtsBody">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">Yükleniyor...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ROI Analysis -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">ROI Analizi</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="roiContent">
+                            <div class="form-group">
+                                <label class="form-label">İstasyon Sayısı</label>
+                                <input type="number" class="form-input" id="stationCount" value="5" min="1" max="50">
+                            </div>
+                            <button class="btn btn-primary" id="btnCalculateROI" style="width:100%">
+                                <i class="fas fa-calculator"></i> ROI Hesapla
+                            </button>
+
+                            <div id="roiResult" class="mt-3 hidden">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                    <div style="padding:12px;background:var(--bg-primary);border-radius:8px;">
+                                        <div class="text-muted" style="font-size:0.75rem;">Toplam Yatırım</div>
+                                        <div style="font-size:1.25rem;font-weight:600;" id="roiCapex">-</div>
+                                    </div>
+                                    <div style="padding:12px;background:var(--bg-primary);border-radius:8px;">
+                                        <div class="text-muted" style="font-size:0.75rem;">Aylık Gelir</div>
+                                        <div style="font-size:1.25rem;font-weight:600;color:var(--success);"
+                                            id="roiRevenue">-</div>
+                                    </div>
+                                    <div style="padding:12px;background:var(--bg-primary);border-radius:8px;">
+                                        <div class="text-muted" style="font-size:0.75rem;">Aylık Kar</div>
+                                        <div style="font-size:1.25rem;font-weight:600;" id="roiProfit">-</div>
+                                    </div>
+                                    <div style="padding:12px;background:var(--bg-primary);border-radius:8px;">
+                                        <div class="text-muted" style="font-size:0.75rem;">Geri Dönüş</div>
+                                        <div style="font-size:1.25rem;font-weight:600;color:var(--byd-red);"
+                                            id="roiPayback">-</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 p-2"
+                                    style="background:rgba(200,16,46,0.1);border-radius:8px;text-align:center;"
+                                    id="roiRecommendation">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Investment Recommendation -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Yatırım Önerisi</h3>
+                </div>
+                <div class="card-body">
+                    <div id="recommendation" class="p-3" style="background:var(--bg-primary);border-radius:8px;">
+                        <p class="text-muted">TOPSIS analizi sonrası yatırım önerisi burada görüntülenecek.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script>
+        // Auth check
+        if (!ApiService.isAuthenticated()) {
+            window.location.href = '/login.html';
+        }
+
+        // Get city ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const cityId = urlParams.get('id');
+
+        if (!cityId) {
+            window.location.href = '/map.html';
+        }
+
+        let cityData = null;
+        let chartIndicators, chartForecast;
+
+        // Load city data
+        async function loadCityData() {
+            try {
+                const res = await ApiService.getCity(cityId);
+
+                if (!res.success) {
+                    throw new Error('Şehir bulunamadı');
+                }
+
+                cityData = res.data;
+                const city = cityData.city;
+
+                // Update header
+                document.getElementById('cityName').textContent = city.name;
+                document.getElementById('cityRegion').textContent =
+                    `${city.plate_code} • ${city.region_name} Bölgesi • ${city.is_metropolitan ? 'Büyükşehir' : 'İl'}`;
+
+                // Priority badge
+                const priority = city.last_topsis_rank <= 10 ? 'high' : city.last_topsis_rank <= 20 ? 'medium' : 'low';
+                const priorityBadge = document.getElementById('priorityBadge');
+                priorityBadge.className = `badge priority-${priority}`;
+                priorityBadge.textContent = priority === 'high' ? 'Yüksek Öncelik' : priority === 'medium' ? 'Orta Öncelik' : 'Düşük Öncelik';
+
+                document.getElementById('rankBadge').textContent = `Sıra: #${city.last_topsis_rank || '-'}`;
+
+                // KPIs
+                document.getElementById('kpiPopulation').textContent = formatNumber(city.population);
+                document.getElementById('kpiScore').textContent = city.last_topsis_score
+                    ? (city.last_topsis_score * 100).toFixed(1) + '%'
+                    : '-';
+
+                // Find EV and charging station values from indicators
+                if (cityData.indicators) {
+                    const evInd = cityData.indicators.find(i => i.code === 'EV_COUNT');
+                    const stationInd = cityData.indicators.find(i => i.code === 'CHARGING_STATIONS');
+
+                    document.getElementById('kpiEV').textContent = evInd ? formatNumber(evInd.value) : '-';
+                    document.getElementById('kpiStations').textContent = stationInd ? Math.round(stationInd.value) : '-';
+                }
+
+                // Districts
+                if (cityData.districts) {
+                    document.getElementById('districtCount').textContent = `${cityData.districts.length} ilçe`;
+                    renderDistricts(cityData.districts);
+                }
+
+                // Charts
+                renderIndicatorChart(cityData.indicators);
+
+                // Recommendation
+                renderRecommendation(city);
+
+                // Forecast
+                loadForecast();
+
+            } catch (error) {
+                console.error('Load city error:', error);
+                alert('Şehir verisi yüklenemedi');
+            }
+        }
+
+        // Render districts
+        function renderDistricts(districts) {
+            const tbody = document.getElementById('districtsBody');
+            tbody.innerHTML = districts.map(d => `
+                <tr>
+                    <td>${d.name}</td>
+                    <td>${formatNumber(d.population)}</td>
+                    <td>${d.is_central ? '<i class="fas fa-check text-success"></i>' : ''}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Render indicator chart
+        function renderIndicatorChart(indicators) {
+            if (!indicators || indicators.length === 0) {
+                return;
+            }
+
+            const labels = indicators.map(i => i.name.substring(0, 15));
+            const values = indicators.map(i => {
+                // Normalize to 0-100
+                const val = parseFloat(i.value);
+                if (i.code.includes('DENSITY') || i.code.includes('INDEX')) {
+                    return val * 100;
+                }
+                return Math.min(100, val / 1000);
+            });
+
+            chartIndicators = new Chart(document.getElementById('chartIndicators'), {
+                type: 'radar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Değer',
+                        data: values,
+                        backgroundColor: 'rgba(200, 16, 46, 0.2)',
+                        borderColor: '#C8102E',
+                        pointBackgroundColor: '#C8102E',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#C8102E'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            pointLabels: { color: '#A0AEC0', font: { size: 10 } },
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Load forecast
+        async function loadForecast() {
+            try {
+                const res = await ApiService.getCityForecast(cityId, 'EV_COUNT');
+
+                if (res.success && res.data.forecasts) {
+                    renderForecastChart(res.data.forecasts);
+                } else {
+                    // Generate sample forecast
+                    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+                    const baseValue = 5000;
+                    const forecasts = months.map((m, i) => ({
+                        date: m,
+                        yhat: baseValue * Math.pow(1.03, i),
+                        yhat_lower: baseValue * Math.pow(1.02, i),
+                        yhat_upper: baseValue * Math.pow(1.04, i)
+                    }));
+                    renderForecastChart(forecasts);
+                }
+            } catch (error) {
+                console.error('Forecast error:', error);
+            }
+        }
+
+        // Render forecast chart
+        function renderForecastChart(forecasts) {
+            const labels = forecasts.map(f => {
+                if (f.date.includes('-')) {
+                    const d = new Date(f.date);
+                    return d.toLocaleDateString('tr-TR', { month: 'short' });
+                }
+                return f.date;
+            });
+
+            chartForecast = new Chart(document.getElementById('chartForecast'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Tahmin',
+                            data: forecasts.map(f => f.yhat),
+                            borderColor: '#C8102E',
+                            backgroundColor: 'rgba(200, 16, 46, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Alt Sınır',
+                            data: forecasts.map(f => f.yhat_lower),
+                            borderColor: 'rgba(200, 16, 46, 0.3)',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Üst Sınır',
+                            data: forecasts.map(f => f.yhat_upper),
+                            borderColor: 'rgba(200, 16, 46, 0.3)',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#A0AEC0' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#A0AEC0' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#A0AEC0' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render recommendation
+        function renderRecommendation(city) {
+            const rank = city.last_topsis_rank || 15;
+            const score = city.last_topsis_score || 0.5;
+
+            let recommendation = '';
+            let icon = '';
+
+            if (rank <= 5) {
+                icon = '🟢';
+                recommendation = `<strong>${city.name}</strong> şehri TOPSIS analizinde <strong>ilk 5</strong> içinde yer almaktadır. 
+                Bu şehir, yüksek EV potansiyeli ve güçlü altyapı puanlarıyla <strong>1. faz yatırım</strong> için önerilmektedir. 
+                İlk etapta 5-10 şarj istasyonu kurulumu değerlendirilebilir.`;
+            } else if (rank <= 10) {
+                icon = '🟡';
+                recommendation = `<strong>${city.name}</strong> şehri TOPSIS analizinde <strong>ilk 10</strong> içinde yer almaktadır. 
+                Bu şehir, dengeli kriter puanlarıyla <strong>1-2. faz yatırım</strong> için uygundur. 
+                Pilot bir istasyonla başlanması ve pazar tepkisinin ölçülmesi önerilir.`;
+            } else if (rank <= 20) {
+                icon = '🟠';
+                recommendation = `<strong>${city.name}</strong> şehri orta öncelikli kategoridedir. 
+                <strong>2. faz genişleme</strong> için değerlendirilebilir. 
+                EV pazarının büyümesi ve altyapı iyileştirmeleri takip edilmelidir.`;
+            } else {
+                icon = '🔴';
+                recommendation = `<strong>${city.name}</strong> şehri şu an için düşük önceliklidir. 
+                Bölgesel koşullar iyileştiğinde tekrar değerlendirilmesi önerilir. 
+                <strong>3. faz</strong> veya sonrası için listeye alınabilir.`;
+            }
+
+            document.getElementById('recommendation').innerHTML = `
+                <div style="font-size:1.5rem;margin-bottom:8px;">${icon}</div>
+                <p>${recommendation}</p>
+            `;
+        }
+
+        // ROI Calculate
+        document.getElementById('btnCalculateROI').addEventListener('click', async () => {
+            const stationCount = parseInt(document.getElementById('stationCount').value);
+
+            if (!stationCount || stationCount < 1) {
+                alert('Geçerli bir istasyon sayısı girin');
+                return;
+            }
+
+            // Simple client-side calculation (in production would call API)
+            const capexPerStation = 750000;
+            const monthlyOpex = 15000 * stationCount;
+            const avgDailyUsage = 150;
+            const pricePerKwh = 8;
+            const occupancy = 0.65;
+
+            const totalCapex = stationCount * capexPerStation;
+            const monthlyRevenue = avgDailyUsage * 30 * pricePerKwh * occupancy * stationCount;
+            const monthlyProfit = monthlyRevenue - monthlyOpex;
+            const paybackMonths = monthlyProfit > 0 ? totalCapex / monthlyProfit : 999;
+
+            document.getElementById('roiCapex').textContent = formatCurrency(totalCapex);
+            document.getElementById('roiRevenue').textContent = formatCurrency(monthlyRevenue);
+            document.getElementById('roiProfit').textContent = formatCurrency(monthlyProfit);
+            document.getElementById('roiPayback').textContent = paybackMonths < 100 ? `${paybackMonths.toFixed(1)} ay` : 'N/A';
+
+            let recText = '';
+            if (paybackMonths <= 24) {
+                recText = '🟢 Mükemmel yatırım fırsatı!';
+            } else if (paybackMonths <= 36) {
+                recText = '🟡 İyi getiri potansiyeli';
+            } else if (paybackMonths <= 48) {
+                recText = '🟠 Orta vadeli yatırım';
+            } else {
+                recText = '🔴 Uzun vadeli değerlendirme gerekli';
+            }
+            document.getElementById('roiRecommendation').textContent = recText;
+
+            document.getElementById('roiResult').classList.remove('hidden');
+        });
+
+        // Utilities
+        function formatNumber(num) {
+            if (!num) return '-';
+            return new Intl.NumberFormat('tr-TR').format(num);
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(num);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadCityData);
+    </script>
+</body>
+
+</html>

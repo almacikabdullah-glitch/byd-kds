@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOPSIS Analizi | BYD Türkiye KDS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body>
+    <!-- Skip Link for Keyboard Navigation -->
+    <a href="#main-content" class="skip-link">Ana içeriğe geç</a>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" role="navigation" aria-label="Ana Navigasyon">
+            <div class="sidebar-header">
+                <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+                <a href="map.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Harita</span></a>
+                <a href="topsis.html" class="nav-item active"><i class="fas fa-sort-amount-down"></i><span>TOPSIS
+                        Analizi</span></a>
+                <a href="scenarios.html" class="nav-item"><i class="fas fa-sliders-h"></i><span>Senaryolar</span></a>
+                <a href="forecast.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Tahminleme</span></a>
+                <a href="roi.html" class="nav-item"><i class="fas fa-calculator"></i><span>ROI Analizi</span></a>
+                <a href="compare.html" class="nav-item"><i class="fas fa-columns"></i><span>Karşılaştır</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-ghost btn-sm" onclick="ApiService.logout()" style="width:100%">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content" role="main">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">TOPSIS Analizi</h1>
+                    <p class="page-subtitle">Çok Kriterli Karar Verme ile Şehir Sıralaması</p>
+                </div>
+                <button class="btn btn-primary" id="btnRunTopsis">
+                    <i class="fas fa-play"></i> Yeni Analiz Çalıştır
+                </button>
+            </header>
+
+            <!-- Run History -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">Analiz Geçmişi</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Analiz Adı</th>
+                                    <th>Senaryo</th>
+                                    <th>Şehir Sayısı</th>
+                                    <th>Süre</th>
+                                    <th>Tarih</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="runHistory">
+                                <tr class="skeleton-row">
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:150px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:80px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:50px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:120px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                </tr>
+                                <tr class="skeleton-row">
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:130px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:70px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:40px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:50px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:110px"></div>
+                                    </td>
+                                    <td>
+                                        <div class="skeleton skeleton-text" style="width:60px"></div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="card" id="resultsCard" style="display:none;">
+                <div class="card-header">
+                    <h3 class="card-title">Sonuçlar: <span id="selectedRunName"></span></h3>
+                    <div class="flex gap-1">
+                        <button class="btn btn-secondary btn-sm" id="btnExportCsv">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                        <button class="btn btn-secondary btn-sm" id="btnExportPdf">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Sıra</th>
+                                    <th>Şehir</th>
+                                    <th>Plaka</th>
+                                    <th>S+</th>
+                                    <th>S-</th>
+                                    <th>C* Skoru</th>
+                                    <th>Öncelik</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TOPSIS Modal -->
+    <div class="modal-overlay hidden" id="topsisModal">
+        <div class="modal"
+            style="background:var(--bg-card);border-radius:var(--radius-lg);padding:var(--spacing-xl);max-width:650px;width:90%;">
+            <h3 class="mb-3">Yeni TOPSIS Analizi</h3>
+            <form id="topsisForm">
+                <div class="form-group">
+                    <label class="form-label">Çalıştırma Adı</label>
+                    <input type="text" class="form-input" id="runName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Senaryo</label>
+                    <select class="form-input form-select" id="scenarioType" onchange="updateCriteriaPreview()">
+                        <option value="balanced">Dengeli Strateji</option>
+                        <option value="aggressive">Agresif Büyüme</option>
+                        <option value="conservative">Temkinli Yaklaşım</option>
+                    </select>
+                </div>
+
+                <!-- Criteria Distribution Preview -->
+                <div class="form-group">
+                    <label class="form-label">Kriter Dağılımı</label>
+                    <div id="criteriaPreview"
+                        style="max-height:200px;overflow-y:auto;background:var(--bg-primary);border-radius:8px;padding:12px;">
+                        <!-- Will be filled by JS -->
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-3">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">İptal</button>
+                    <button type="submit" class="btn btn-primary">Çalıştır</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal-overlay hidden" id="deleteModal">
+        <div class="modal delete-modal">
+            <div class="delete-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>Analizi Sil</h3>
+            <p class="delete-message">
+                <strong id="deleteRunName"></strong> analizi silinecek.<br>
+                Bu işlem geri alınamaz!
+            </p>
+            <div class="flex gap-2 mt-4" style="justify-content:center;">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">İptal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="fas fa-trash"></i> Sil
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .delete-modal {
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .delete-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(229, 62, 62, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .delete-icon i {
+            font-size: 28px;
+            color: var(--danger);
+        }
+
+        .delete-modal h3 {
+            margin: 0 0 12px;
+            color: var(--text-primary);
+        }
+
+        .delete-message {
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background: #c53030;
+        }
+    </style>
+
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script src="src/services/pdf.js"></script>
+    <script src="src/services/csv.js"></script>
+    <script>
+        if (!ApiService.isAuthenticated()) window.location.href = '/login.html';
+
+        document.getElementById('runName').value = `Analiz - ${new Date().toLocaleDateString('tr-TR')}`;
+
+        async function loadHistory() {
+            try {
+                const res = await ApiService.getTopsisRuns(20);
+                if (res.success && res.data.length > 0) {
+                    document.getElementById('runHistory').innerHTML = res.data.map(r => `
+                        <tr>
+                            <td>#${r.id}</td>
+                            <td>${r.run_name}</td>
+                            <td><span class="badge badge-info">${r.scenario_type}</span></td>
+                            <td>${r.total_alternatives}</td>
+                            <td>${r.execution_time_ms}ms</td>
+                            <td>${new Date(r.created_at).toLocaleString('tr-TR')}</td>
+                            <td>
+                                <button class="btn btn-ghost btn-sm" onclick="loadResults(${r.id}, '${r.run_name.replace(/'/g, "\\'")}')"><i class="fas fa-eye"></i></button>
+                                <button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="confirmDelete(${r.id}, '${r.run_name.replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('runHistory').innerHTML = '<tr><td colspan="7" class="text-center text-muted">Henüz analiz yapılmamış</td></tr>';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        let deleteRunId = null;
+
+        function confirmDelete(runId, runName) {
+            deleteRunId = runId;
+            document.getElementById('deleteRunName').textContent = runName;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            deleteRunId = null;
+        }
+
+        document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+            if (!deleteRunId) return;
+
+            try {
+                const res = await ApiService.deleteTopsisRun(deleteRunId);
+                if (res.success) {
+                    closeDeleteModal();
+                    loadHistory();
+                    document.getElementById('resultsCard').style.display = 'none';
+                } else {
+                    throw new Error(res.error);
+                }
+            } catch (err) {
+                Toast.error(err.message);
+            }
+        });
+
+        // Store data for PDF export
+        let currentRunData = null;
+        let currentResults = null;
+
+        async function loadResults(runId, name) {
+            try {
+                const res = await ApiService.getTopsisRunResults(runId);
+                if (res.success) {
+                    currentRunData = res.data.run;
+                    currentResults = res.data.results;
+
+                    document.getElementById('selectedRunName').textContent = name;
+                    document.getElementById('resultsBody').innerHTML = res.data.results.map(r => `
+                        <tr>
+                            <td><strong>#${r.rank}</strong></td>
+                            <td>${r.city_name}</td>
+                            <td>${r.plate_code}</td>
+                            <td>${parseFloat(r.s_plus).toFixed(4)}</td>
+                            <td>${parseFloat(r.s_minus).toFixed(4)}</td>
+                            <td><strong>${(r.score * 100).toFixed(2)}%</strong></td>
+                            <td><span class="badge priority-${r.investment_priority || 'medium'}">${r.investment_priority === 'high' ? 'Yüksek' : r.investment_priority === 'low' ? 'Düşük' : 'Orta'}</span></td>
+                        </tr>
+                    `).join('');
+                    document.getElementById('resultsCard').style.display = 'block';
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // Scenario preset weights for criteria preview
+        const scenarioWeights = {
+            balanced: {
+                'Nüfus Yoğunluğu': 10, 'EV Sayısı': 15, 'EV Yoğunluğu': 15, 'Enerji Kapasitesi': 10,
+                'Mevcut Şarj İst.': 10, 'Ortalama Gelir': 12, 'Turizm Endeksi': 8,
+                'Otoyol Erişimi': 10, 'Elektrik Fiyatı': 5, 'Şebeke Güvenilirliği': 5
+            },
+            aggressive: {
+                'Nüfus Yoğunluğu': 15, 'EV Sayısı': 20, 'EV Yoğunluğu': 20, 'Enerji Kapasitesi': 8,
+                'Mevcut Şarj İst.': 5, 'Ortalama Gelir': 15, 'Turizm Endeksi': 10,
+                'Otoyol Erişimi': 5, 'Elektrik Fiyatı': 1, 'Şebeke Güvenilirliği': 1
+            },
+            conservative: {
+                'Nüfus Yoğunluğu': 8, 'EV Sayısı': 10, 'EV Yoğunluğu': 10, 'Enerji Kapasitesi': 12,
+                'Mevcut Şarj İst.': 15, 'Ortalama Gelir': 10, 'Turizm Endeksi': 5,
+                'Otoyol Erişimi': 10, 'Elektrik Fiyatı': 10, 'Şebeke Güvenilirliği': 10
+            }
+        };
+
+        function updateCriteriaPreview() {
+            const type = document.getElementById('scenarioType').value;
+            const weights = scenarioWeights[type] || scenarioWeights.balanced;
+
+            const html = Object.entries(weights).map(([name, weight]) => `
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div style="width:130px;font-size:12px;color:var(--text-secondary);">${name}</div>
+                    <div style="flex:1;height:8px;background:var(--border-color);border-radius:4px;overflow:hidden;">
+                        <div style="width:${weight * 3.33}%;height:100%;background:var(--byd-red);border-radius:4px;"></div>
+                    </div>
+                    <div style="width:35px;text-align:right;font-size:12px;font-weight:600;">${weight}%</div>
+                </div>
+            `).join('');
+
+            document.getElementById('criteriaPreview').innerHTML = html;
+        }
+
+        document.getElementById('btnRunTopsis').onclick = () => {
+            document.getElementById('topsisModal').classList.remove('hidden');
+            updateCriteriaPreview(); // Initial render
+        };
+        function closeModal() { document.getElementById('topsisModal').classList.add('hidden'); }
+
+        document.getElementById('topsisForm').onsubmit = async (e) => {
+            e.preventDefault();
+            try {
+                const res = await ApiService.runTopsis({
+                    runName: document.getElementById('runName').value,
+                    scenarioType: document.getElementById('scenarioType').value
+                });
+                if (res.success) {
+                    Toast.success('TOPSIS analizi başarıyla tamamlandı!', 'Analiz Tamamlandı');
+                    closeModal();
+                    loadHistory();
+                } else throw new Error(res.error);
+            } catch (err) { Toast.error(err.message); }
+        };
+
+        // PDF Export Button Handler
+        document.getElementById('btnExportPdf').addEventListener('click', async () => {
+            if (!currentRunData || !currentResults) {
+                Toast.warning('Lütfen önce bir analiz sonucu seçin');
+                return;
+            }
+
+            try {
+                Toast.info('PDF oluşturuluyor...', 'Lütfen bekleyin');
+                const filename = await PDFGenerator.generateTopsisReport(currentRunData, currentResults);
+                Toast.success(`${filename} indirildi!`, 'PDF Oluşturuldu');
+            } catch (e) {
+                console.error('PDF error:', e);
+                Toast.error('PDF oluşturulamadı');
+            }
+        });
+
+        // CSV Export Button Handler
+        document.getElementById('btnExportCsv').addEventListener('click', () => {
+            if (!currentRunData || !currentResults) {
+                Toast.warning('Lütfen önce bir analiz sonucu seçin');
+                return;
+            }
+
+            try {
+                const filename = CSVExporter.exportTopsisResults(currentRunData, currentResults);
+                Toast.success(`${filename} indirildi!`, 'CSV Oluşturuldu');
+            } catch (e) {
+                console.error('CSV error:', e);
+                Toast.error('CSV oluşturulamadı');
+            }
+        });
+
+        loadHistory();
+    </script>
+</body>
+
+</html>

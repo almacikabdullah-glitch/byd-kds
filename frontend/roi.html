@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROI Analizi | BYD Türkiye KDS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" class="sidebar-logo">
+            </div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item"><i class="fas fa-chart-pie"></i><span>Dashboard</span></a>
+                <a href="map.html" class="nav-item"><i class="fas fa-map-marked-alt"></i><span>Harita</span></a>
+                <a href="topsis.html" class="nav-item"><i class="fas fa-sort-amount-down"></i><span>TOPSIS
+                        Analizi</span></a>
+                <a href="scenarios.html" class="nav-item"><i class="fas fa-sliders-h"></i><span>Senaryolar</span></a>
+                <a href="forecast.html" class="nav-item"><i class="fas fa-chart-line"></i><span>Tahminleme</span></a>
+                <a href="roi.html" class="nav-item active"><i class="fas fa-calculator"></i><span>ROI Analizi</span></a>
+                <a href="compare.html" class="nav-item"><i class="fas fa-columns"></i><span>Karşılaştır</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-ghost btn-sm" onclick="ApiService.logout()" style="width:100%">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">ROI Analizi</h1>
+                    <p class="page-subtitle">Yatırım geri dönüş hesaplamaları</p>
+                </div>
+            </header>
+
+            <!-- Parameters -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">Yatırım Parametreleri</h3>
+                </div>
+                <div class="card-body">
+                    <div class="grid-4" style="gap:20px;">
+                        <div class="form-group">
+                            <label class="form-label">İstasyon Sayısı (şehir başına)</label>
+                            <input type="number" class="form-input" id="stationCount" value="5" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">CAPEX / İstasyon (TL)</label>
+                            <input type="number" class="form-input" id="capexPerStation" value="750000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Aylık OPEX (TL)</label>
+                            <input type="number" class="form-input" id="monthlyOpex" value="15000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">kWh Fiyatı (TL)</label>
+                            <input type="number" class="form-input" id="pricePerKwh" value="8" step="0.5">
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-3" id="btnCalculate">
+                        <i class="fas fa-calculator"></i> Tüm Şehirler İçin Hesapla
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary KPIs -->
+            <div class="kpi-grid mb-4">
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-coins"></i></div>
+                    <div class="kpi-value" id="kpiTotalInvestment">-</div>
+                    <div class="kpi-label">Toplam Yatırım</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+                    <div class="kpi-value" id="kpiAvgPayback">-</div>
+                    <div class="kpi-label">Ort. Geri Dönüş</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-check-circle"></i></div>
+                    <div class="kpi-value" id="kpiRecommended">-</div>
+                    <div class="kpi-label">Önerilen Şehir</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon"><i class="fas fa-hand-holding-usd"></i></div>
+                    <div class="kpi-value" id="kpiMonthlyRevenue">-</div>
+                    <div class="kpi-label">Aylık Toplam Gelir</div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Şehir Bazlı ROI Sonuçları</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Sıra</th>
+                                    <th>Şehir</th>
+                                    <th>TOPSIS</th>
+                                    <th>Toplam Yatırım</th>
+                                    <th>Aylık Gelir</th>
+                                    <th>Aylık Kar</th>
+                                    <th>Geri Dönüş</th>
+                                    <th>Öneri</th>
+                                </tr>
+                            </thead>
+                            <tbody id="roiTable">
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted">Hesaplamak için yukarıdaki butona
+                                        tıklayın</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script>
+        if (!ApiService.isAuthenticated()) window.location.href = '/login.html';
+
+        async function calculateROI() {
+            try {
+                // Get latest TOPSIS run
+                const topsisRes = await ApiService.getLatestTopsisResults();
+                if (!topsisRes.success || !topsisRes.data.runId) {
+                    Toast.warning('Önce TOPSIS analizi yapmalısınız!', 'TOPSIS Gerekli');
+                    return;
+                }
+
+                const params = {
+                    topsisRunId: topsisRes.data.runId,
+                    stationCount: parseInt(document.getElementById('stationCount').value),
+                    capexPerStation: parseInt(document.getElementById('capexPerStation').value),
+                    monthlyOpex: parseInt(document.getElementById('monthlyOpex').value),
+                    pricePerKwh: parseFloat(document.getElementById('pricePerKwh').value)
+                };
+
+                const res = await ApiService.calculateROI(params);
+
+                if (res.success) {
+                    updateKPIs(res.data.summary);
+                    updateTable(res.data.results);
+                } else {
+                    throw new Error(res.error);
+                }
+            } catch (e) {
+                console.error('ROI error:', e);
+                Toast.error('ROI hesaplanamadı: ' + e.message);
+            }
+        }
+
+        function updateKPIs(summary) {
+            document.getElementById('kpiTotalInvestment').textContent = formatCurrency(summary.totalInvestment);
+            document.getElementById('kpiAvgPayback').textContent = summary.avgPaybackMonths.toFixed(1) + ' ay';
+            document.getElementById('kpiRecommended').textContent = summary.priorityDistribution.high + ' şehir';
+            document.getElementById('kpiMonthlyRevenue').textContent = formatCurrency(summary.totalMonthlyRevenue);
+        }
+
+        function updateTable(results) {
+            document.getElementById('roiTable').innerHTML = results.map(r => `
+                <tr>
+                    <td><strong>#${r.topsisRank}</strong></td>
+                    <td>${r.cityName}</td>
+                    <td>${(r.topsisScore * 100).toFixed(1)}%</td>
+                    <td>${formatCurrency(r.financials.totalCapex)}</td>
+                    <td class="text-success">${formatCurrency(r.financials.monthlyRevenue)}</td>
+                    <td>${formatCurrency(r.financials.monthlyProfit)}</td>
+                    <td><strong>${r.financials.paybackMonths} ay</strong></td>
+                    <td>
+                        <span class="badge" style="background:${r.recommendation.level === 'strongly_recommended' ? 'var(--success)' : r.recommendation.level === 'recommended' ? 'var(--warning)' : 'var(--text-muted)'}">
+                            ${r.recommendation.icon} ${r.recommendation.level === 'strongly_recommended' ? 'Kesinlikle' : r.recommendation.level === 'recommended' ? 'Önerilen' : 'Değerlendir'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function formatCurrency(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M ₺';
+            }
+            return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 }).format(num);
+        }
+
+        document.getElementById('btnCalculate').addEventListener('click', calculateROI);
+    </script>
+</body>
+
+</html>

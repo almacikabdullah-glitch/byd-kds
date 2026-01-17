@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harita | BYD Türkiye KDS</title>
+    <meta name="description" content="BYD Türkiye EV Şarj İstasyonu - Türkiye Haritası">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/css/main.css">
+    <style>
+        .map-page .main-content {
+            padding: var(--spacing-lg);
+        }
+
+        .map-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: var(--spacing-lg);
+            height: calc(100vh - 140px);
+        }
+
+        .map-container {
+            height: 100%;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .map-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-md);
+            overflow-y: auto;
+        }
+
+        .city-list-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .city-list-item:hover {
+            border-color: var(--byd-red);
+            transform: translateX(4px);
+        }
+
+        .city-rank {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
+            background: var(--gradient-red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .city-rank.medium {
+            background: var(--warning);
+            color: #000;
+        }
+
+        .city-rank.low {
+            background: var(--text-muted);
+        }
+
+        .city-info h4 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .city-info p {
+            margin: 0;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .city-score {
+            margin-left: auto;
+            font-weight: 600;
+            color: var(--byd-red);
+        }
+
+        .legend {
+            display: flex;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-size: 0.75rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.high {
+            background: #C8102E;
+        }
+
+        .legend-dot.medium {
+            background: #ECC94B;
+        }
+
+        .legend-dot.low {
+            background: #718096;
+        }
+
+        /* Custom marker styles */
+        .custom-marker {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 10px;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .map-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .map-sidebar {
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+
+<body class="map-page">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" class="sidebar-logo">
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="map.html" class="nav-item active">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>Harita</span>
+                </a>
+                <a href="topsis.html" class="nav-item">
+                    <i class="fas fa-sort-amount-down"></i>
+                    <span>TOPSIS Analizi</span>
+                </a>
+                <a href="scenarios.html" class="nav-item">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Senaryolar</span>
+                </a>
+                <a href="forecast.html" class="nav-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Tahminleme</span>
+                </a>
+                <a href="roi.html" class="nav-item">
+                    <i class="fas fa-calculator"></i>
+                    <span>ROI Analizi</span>
+                </a>
+                <a href="compare.html" class="nav-item"><i class="fas fa-columns"></i><span>Karşılaştır</span></a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div>
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role" id="userRole">Yönetici</div>
+                    </div>
+                </div>
+                <button class="btn btn-ghost btn-sm mt-2" onclick="ApiService.logout()" style="width:100%">
+                    <i class="fas fa-sign-out-alt"></i> Çıkış
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="page-header">
+                <div>
+                    <h1 class="page-title">Türkiye Haritası</h1>
+                    <p class="page-subtitle">TOPSIS skorlarına göre şehir görselleştirmesi</p>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot high"></div>
+                        <span>Yüksek Öncelik</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot medium"></div>
+                        <span>Orta Öncelik</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot low"></div>
+                        <span>Düşük Öncelik</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Map Wrapper -->
+            <div class="map-wrapper">
+                <!-- Map -->
+                <div class="map-container" id="map"></div>
+
+                <!-- City List -->
+                <div class="map-sidebar">
+                    <h3 class="mb-2">Şehir Sıralaması</h3>
+                    <div id="cityList">
+                        <p class="text-muted text-center"><i class="fas fa-spinner fa-spin"></i> Yükleniyor...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script>
+        // Auth check
+        if (!ApiService.isAuthenticated()) {
+            window.location.href = '/login.html';
+        }
+
+        // User info
+        const user = ApiService.getUser();
+        if (user) {
+            document.getElementById('userName').textContent = user.name || user.email;
+            document.getElementById('userRole').textContent = user.role === 'admin' ? 'Yönetici' : 'Analist';
+            document.getElementById('userAvatar').textContent = (user.name || user.email).charAt(0).toUpperCase();
+        }
+
+        // Initialize map
+        const map = L.map('map').setView([39.0, 35.0], 6);
+
+        // Add tile layer (dark theme)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        // City markers
+        let markers = [];
+        let cities = [];
+
+        // Load data
+        async function loadMapData() {
+            try {
+                // Try TOPSIS results first
+                const topsisRes = await ApiService.getLatestTopsisResults();
+
+                if (topsisRes.success && topsisRes.data.results && topsisRes.data.results.length > 0) {
+                    cities = topsisRes.data.results;
+                    renderCities(cities);
+                } else {
+                    // Fallback to cities list
+                    const citiesRes = await ApiService.getCitiesForMap();
+                    if (citiesRes.success) {
+                        cities = citiesRes.data.map((c, i) => ({
+                            ...c,
+                            city_id: c.id,
+                            city_name: c.name,
+                            rank: c.last_topsis_rank || (i + 1),
+                            score: c.last_topsis_score || 0.5,
+                            investment_priority: c.last_topsis_rank <= 10 ? 'high' : c.last_topsis_rank <= 20 ? 'medium' : 'low'
+                        }));
+                        renderCities(cities);
+                    }
+                }
+            } catch (error) {
+                console.error('Map load error:', error);
+            }
+        }
+
+        // Render cities on map
+        function renderCities(cities) {
+            // Clear existing markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            // Add markers
+            cities.forEach(city => {
+                const lat = city.latitude || city.lat;
+                const lng = city.longitude || city.lng;
+
+                if (!lat || !lng) return;
+
+                const score = parseFloat(city.score) || 0.5;
+                const priority = city.investment_priority ||
+                    (city.rank <= 10 ? 'high' : city.rank <= 20 ? 'medium' : 'low');
+
+                // Color based on priority
+                const colors = {
+                    high: '#C8102E',
+                    medium: '#ECC94B',
+                    low: '#718096'
+                };
+
+                // Create custom icon
+                const icon = L.divIcon({
+                    className: 'custom-marker-wrapper',
+                    html: `<div class="custom-marker" style="background:${colors[priority]}">${city.rank || '-'}</div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+
+                const marker = L.marker([lat, lng], { icon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div style="min-width:200px">
+                            <h4 style="margin:0 0 8px;color:#C8102E;">${city.city_name || city.name}</h4>
+                            <p style="margin:4px 0;"><strong>Sıra:</strong> #${city.rank}</p>
+                            <p style="margin:4px 0;"><strong>TOPSIS Skoru:</strong> ${(score * 100).toFixed(1)}%</p>
+                            <p style="margin:4px 0;"><strong>Öncelik:</strong> ${priority === 'high' ? 'Yüksek' : priority === 'medium' ? 'Orta' : 'Düşük'}</p>
+                            <a href="city.html?id=${city.city_id || city.id}" style="color:#C8102E;display:block;margin-top:8px;">
+                                Detayları Gör →
+                            </a>
+                        </div>
+                    `);
+
+                markers.push(marker);
+            });
+
+            // Update city list
+            renderCityList(cities);
+        }
+
+        // Render city list
+        function renderCityList(cities) {
+            const container = document.getElementById('cityList');
+
+            container.innerHTML = cities.slice(0, 15).map(city => {
+                const score = parseFloat(city.score) || 0.5;
+                const priority = city.investment_priority ||
+                    (city.rank <= 10 ? 'high' : city.rank <= 20 ? 'medium' : 'low');
+
+                return `
+                    <div class="city-list-item" onclick="focusCity(${city.latitude || city.lat}, ${city.longitude || city.lng}, ${city.city_id || city.id})">
+                        <div class="city-rank ${priority}">${city.rank}</div>
+                        <div class="city-info">
+                            <h4>${city.city_name || city.name}</h4>
+                            <p>${city.plate_code} • ${city.region_name || ''}</p>
+                        </div>
+                        <div class="city-score">${(score * 100).toFixed(0)}%</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Focus on city
+        function focusCity(lat, lng, id) {
+            map.setView([lat, lng], 9, { animate: true });
+
+            // Open popup for this marker
+            markers.forEach(m => {
+                const pos = m.getLatLng();
+                if (Math.abs(pos.lat - lat) < 0.01 && Math.abs(pos.lng - lng) < 0.01) {
+                    m.openPopup();
+                }
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadMapData);
+    </script>
+</body>
+
+</html>

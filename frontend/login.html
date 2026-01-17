@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş | BYD Türkiye KDS</title>
+    <meta name="description" content="BYD Türkiye Karar Destek Sistemi - Yönetici Girişi">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/css/main.css">
+</head>
+
+<body>
+    <div class="login-page">
+        <div class="login-container">
+            <div class="login-card fade-in">
+                <!-- Logo -->
+                <div class="login-logo">
+                    <img src="assets/logo/byd-seeklogo.png" alt="BYD Logo" id="logo">
+                </div>
+
+                <!-- Title -->
+                <h1 class="login-title">Karar Destek Sistemi</h1>
+                <p class="login-subtitle">EV Şarj İstasyonu Yatırım Analizi</p>
+
+                <!-- Error Message -->
+                <div class="login-error" id="loginError">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="errorText"></span>
+                </div>
+
+                <!-- Login Form -->
+                <form class="login-form" id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Email</label>
+                        <input type="email" class="form-input" id="email" name="email" placeholder="email@byd.com"
+                            required autocomplete="email">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="password">Şifre</label>
+                        <input type="password" class="form-input" id="password" name="password" placeholder="••••••••"
+                            required autocomplete="current-password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
+                        <span id="btnText">Giriş Yap</span>
+                        <i class="fas fa-spinner fa-spin hidden" id="btnSpinner"></i>
+                    </button>
+                </form>
+
+                <!-- Info -->
+                <p class="text-center text-muted mt-3" style="font-size: 0.875rem;">
+                    Demo: admin@byd.com / Admin123!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="src/services/toast.js"></script>
+    <script src="src/services/api.js"></script>
+    <script>
+        // Check if already logged in
+        if (ApiService.isAuthenticated()) {
+            window.location.href = '/dashboard.html';
+        }
+
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const errorText = document.getElementById('errorText');
+        const loginBtn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('btnText');
+        const btnSpinner = document.getElementById('btnSpinner');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            // UI state
+            loginBtn.disabled = true;
+            btnText.textContent = 'Giriş yapılıyor...';
+            btnSpinner.classList.remove('hidden');
+            loginError.classList.remove('show');
+
+            try {
+                const result = await ApiService.login(email, password);
+
+                if (result.success) {
+                    window.location.href = '/dashboard.html';
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                errorText.textContent = error.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.';
+                loginError.classList.add('show');
+            } finally {
+                loginBtn.disabled = false;
+                btnText.textContent = 'Giriş Yap';
+                btnSpinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>
